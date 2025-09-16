@@ -1,0 +1,175 @@
+-- Services
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- === BUAT UI ===
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game.CoreGui
+ScreenGui.IgnoreGuiInset = true
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 700, 0, 500)
+Frame.Position = UDim2.new(0.5, -350, 0.5, -250)
+Frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+Frame.BorderSizePixel = 0
+Frame.Parent = ScreenGui
+
+-- Input URL
+local UrlBox = Instance.new("TextBox")
+UrlBox.Size = UDim2.new(1, -120, 0, 30)
+UrlBox.Position = UDim2.new(0, 10, 0, 10)
+UrlBox.PlaceholderText = "Masukkan URL raw GitHub..."
+UrlBox.TextColor3 = Color3.fromRGB(255,255,255)
+UrlBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
+UrlBox.BorderSizePixel = 0
+UrlBox.Font = Enum.Font.Code
+UrlBox.TextSize = 14
+UrlBox.Parent = Frame
+
+-- Tombol Load
+local LoadButton = Instance.new("TextButton")
+LoadButton.Size = UDim2.new(0, 100, 0, 30)
+LoadButton.Position = UDim2.new(1, -110, 0, 10)
+LoadButton.Text = "Load"
+LoadButton.TextColor3 = Color3.fromRGB(255,255,255)
+LoadButton.BackgroundColor3 = Color3.fromRGB(60,120,255)
+LoadButton.BorderSizePixel = 0
+LoadButton.Font = Enum.Font.GothamBold
+LoadButton.TextSize = 14
+LoadButton.Parent = Frame
+
+-- Input start line
+local StartBox = Instance.new("TextBox")
+StartBox.Size = UDim2.new(0, 80, 0, 30)
+StartBox.Position = UDim2.new(0, 10, 0, 50)
+StartBox.PlaceholderText = "Start"
+StartBox.TextColor3 = Color3.fromRGB(255,255,255)
+StartBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
+StartBox.BorderSizePixel = 0
+StartBox.Font = Enum.Font.Code
+StartBox.TextSize = 14
+StartBox.Parent = Frame
+
+-- Input end line
+local EndBox = Instance.new("TextBox")
+EndBox.Size = UDim2.new(0, 80, 0, 30)
+EndBox.Position = UDim2.new(0, 100, 0, 50)
+EndBox.PlaceholderText = "End"
+EndBox.TextColor3 = Color3.fromRGB(255,255,255)
+EndBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
+EndBox.BorderSizePixel = 0
+EndBox.Font = Enum.Font.Code
+EndBox.TextSize = 14
+EndBox.Parent = Frame
+
+-- Tombol Preview
+local PreviewButton = Instance.new("TextButton")
+PreviewButton.Size = UDim2.new(0, 100, 0, 30)
+PreviewButton.Position = UDim2.new(0, 200, 0, 50)
+PreviewButton.Text = "Preview"
+PreviewButton.TextColor3 = Color3.fromRGB(255,255,255)
+PreviewButton.BackgroundColor3 = Color3.fromRGB(60,120,255)
+PreviewButton.BorderSizePixel = 0
+PreviewButton.Font = Enum.Font.GothamBold
+PreviewButton.TextSize = 14
+PreviewButton.Parent = Frame
+
+-- Tombol Copy
+local CopyButton = Instance.new("TextButton")
+CopyButton.Size = UDim2.new(0, 120, 0, 30)
+CopyButton.Position = UDim2.new(0, 310, 0, 50)
+CopyButton.Text = "Copy Full"
+CopyButton.TextColor3 = Color3.fromRGB(255,255,255)
+CopyButton.BackgroundColor3 = Color3.fromRGB(60,255,120)
+CopyButton.BorderSizePixel = 0
+CopyButton.Font = Enum.Font.GothamBold
+CopyButton.TextSize = 14
+CopyButton.Parent = Frame
+
+-- Tombol Close
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -40, 0, 50)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255,255,255)
+CloseButton.BackgroundColor3 = Color3.fromRGB(255,60,60)
+CloseButton.BorderSizePixel = 0
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 14
+CloseButton.Parent = Frame
+
+-- ScrollBox Atas
+local PreviewTop = Instance.new("TextBox")
+PreviewTop.Size = UDim2.new(1, -20, 0.5, -60)
+PreviewTop.Position = UDim2.new(0, 10, 0, 90)
+PreviewTop.MultiLine = true
+PreviewTop.ClearTextOnFocus = false
+PreviewTop.TextColor3 = Color3.fromRGB(255,255,255)
+PreviewTop.BackgroundColor3 = Color3.fromRGB(40,40,40)
+PreviewTop.BorderSizePixel = 0
+PreviewTop.Font = Enum.Font.Code
+PreviewTop.TextSize = 14
+PreviewTop.TextXAlignment = Enum.TextXAlignment.Left
+PreviewTop.TextYAlignment = Enum.TextYAlignment.Top
+PreviewTop.TextWrapped = false -- biar scroll horizontal
+PreviewTop.Text = ""
+PreviewTop.Parent = Frame
+
+-- ScrollBox Bawah
+local PreviewBottom = PreviewTop:Clone()
+PreviewBottom.Position = UDim2.new(0, 10, 0.5, 0)
+PreviewBottom.Parent = Frame
+
+-- === CALLBACK ===
+local lines = {}
+
+LoadButton.MouseButton1Click:Connect(function()
+    local URL = UrlBox.Text
+    if URL == "" then return end
+    local rawScript = game:HttpGet(URL)
+    lines = {}
+    for line in rawScript:gmatch("([^\n]*)\n?") do
+        table.insert(lines, line)
+    end
+    print("✅ Script berhasil dimuat, total line:", #lines)
+end)
+
+PreviewButton.MouseButton1Click:Connect(function()
+    if #lines == 0 then return end
+    local startLine = tonumber(StartBox.Text) or 1
+    local endLine = tonumber(EndBox.Text) or #lines
+    endLine = math.min(endLine, #lines)
+
+    -- ambil 10 line awal
+    local subsetTop = {}
+    for i = startLine, math.min(startLine+9, endLine) do
+        table.insert(subsetTop, i..": "..lines[i])
+    end
+    PreviewTop.Text = table.concat(subsetTop, "\n")
+
+    -- ambil 10 line akhir
+    local subsetBottom = {}
+    for i = math.max(endLine-9, startLine), endLine do
+        table.insert(subsetBottom, i..": "..lines[i])
+    end
+    PreviewBottom.Text = table.concat(subsetBottom, "\n")
+end)
+
+CopyButton.MouseButton1Click:Connect(function()
+    if #lines == 0 then return end
+    local startLine = tonumber(StartBox.Text) or 1
+    local endLine = tonumber(EndBox.Text) or #lines
+    endLine = math.min(endLine, #lines)
+    local subset = {}
+    for i=startLine, endLine do
+        table.insert(subset, lines[i])
+    end
+    local textToCopy = table.concat(subset, "\n")
+    setclipboard(textToCopy)
+    print("✅ Semua line berhasil dicopy ke clipboard!")
+end)
+
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
